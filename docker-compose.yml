@@ -1,0 +1,52 @@
+version: '3'
+
+services:
+  influxdb:
+    image: influxdb:latest
+    restart: always
+    ports:
+      - 8086:8086
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    env_file:
+      - .env
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+    networks:
+      - influxdb_network
+  telegraf:
+    image: telegraf:latest
+    restart: always
+    volumes:
+      - ./configs/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    env_file:
+      - .env
+    networks:
+      - influxdb_network
+      - mqttbroker_network
+    depends_on:
+      - influxdb
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    ports:
+      - '5000:5000'
+    networks:
+      - influxdb_network
+
+volumes:
+  influxdb_data:
+  influxdb_config:
+
+networks:
+  mqttbroker_network:
+    external: True
+  influxdb_network:
+    name: influxdb_network
+    driver: bridge
