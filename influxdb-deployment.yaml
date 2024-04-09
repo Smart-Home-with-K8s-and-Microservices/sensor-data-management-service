@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: influxdb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: influxdb
+  template:
+    metadata:
+      labels:
+        app: influxdb
+    spec:
+      containers:
+      - name: influxdb
+        image: influxdb:latest
+        ports:
+        - containerPort: 8086
+        volumeMounts:
+        - name: influxdb-data
+          mountPath: /var/lib/influxdb2
+        - name: influxdb-config
+          mountPath: /etc/influxdb2
+        env:
+        - name: DOCKER_INFLUXDB_INIT_MODE
+          value: "setup"
+        - name: DOCKER_INFLUXDB_INIT_USERNAME
+          value: "panos"
+        - name: DOCKER_INFLUXDB_INIT_PASSWORD
+          value: "password"
+        - name: DOCKER_INFLUXDB_INIT_ORG
+          value: "home_automation"
+        - name: DOCKER_INFLUXDB_INIT_BUCKET
+          value: "sensor_data_bucket"
+        - name: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
+          value: "adminToken123"                            
+      volumes:
+      - name: influxdb-data
+        persistentVolumeClaim:
+          claimName: influxdb-data-pvc
+      - name: influxdb-config
+        persistentVolumeClaim:
+          claimName: influxdb-config-pvc
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: influxdb
+spec:
+  selector:
+    app: influxdb
+  ports:
+  - protocol: TCP
+    port: 8086
+    targetPort: 8086
+    nodePort: 30886
+  type: NodePort
